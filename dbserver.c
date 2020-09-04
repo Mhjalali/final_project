@@ -5,6 +5,14 @@
 #include "string.h"
 
 char files[60][30];
+int time, quantity, has_sold, totalprice;
+char city[40] = "", market_id[20] = "";
+
+void insert_stores_data(char param[8][40], PGconn *conn);
+
+void insert_city(char param[8][40], PGconn *conn);
+
+void insert_market(char param[8][40], PGconn *conn);
 
 int listFiles() {
     struct dirent *dp;
@@ -32,7 +40,6 @@ void do_exit(PGconn *conn, PGresult *res) {
     exit(1);
 }
 
-
 int main() {
     int i, j, k;
     int n = listFiles();
@@ -57,29 +64,10 @@ int main() {
                 i++;
                 token = strtok(NULL, ",");
             }
-            i--;
-            int l;
-            for (l = 0; l < i+1; ++l) {
-                if (l == i ) {
-                    strcat(param[l], "');");
-                } else {
-                    strcat(param[l], "','");
-                }
-            }
 
-            char order[300] = "INSERT INTO fp_stores_data (time, province, city, market_id, product_id, price, quantity, has_sold) VALUES('";
-
-            for (l = 0; l < i+1; ++l) {
-                strcat(order, param[l]);
-            }
-
-            PGresult *res = PQexec(conn, order);
-
-            if (PQresultStatus(res) != PGRES_COMMAND_OK)
-                do_exit(conn, res);
-
-            PQclear(res);
-
+            insert_stores_data(param, conn);
+            insert_city(param, conn);
+            insert_market(param, conn);
         }
         fclose(ftp);
     }
@@ -88,5 +76,134 @@ int main() {
 
     return 0;
 }
+
+void insert_stores_data(char param[8][40], PGconn *conn) {
+    int l;
+    char hold1[40], hold2[40], hold3[40];
+    strcpy(hold1, param[0]);
+    strcpy(hold2, param[2]);
+    strcpy(hold3, param[3]);
+    for (l = 0; l < 8; ++l) {
+        if (l == 7) {
+            strcat(param[l], "');");
+        } else {
+            strcat(param[l], "','");
+        }
+    }
+
+    char order[300] = "INSERT INTO fp_stores_data (time, province, city, market_id, product_id, price, quantity, has_sold) VALUES('";
+
+    for (l = 0; l < 8; ++l) {
+        strcat(order, param[l]);
+    }
+
+    PGresult *res = PQexec(conn, order);
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+        do_exit(conn, res);
+
+    PQclear(res);
+
+    strcpy(param[0], hold1);
+    strcpy(param[2], hold2);
+    strcpy(param[3], hold3);
+}
+
+void insert_city(char param[8][40], PGconn *conn) {
+    char hold1[40];
+    strcpy(hold1, param[0]);
+    if (strcmp(city, param[2]) == 0) {
+        quantity += atoi(param[6]);
+        has_sold += atoi(param[7]);
+        totalprice += atoi(param[6]) * atoi(param[5]);
+    } else {
+        if (strcmp(city, "") != 0) {
+            char q[20], h[20], p[20];
+            itoa(quantity, q, 10);
+            itoa(has_sold, h, 10);
+            itoa(totalprice / quantity, p, 10);
+
+            char order[300] = "INSERT INTO fp_city_aggregation (time, city, price, quantity, has_sold) VALUES('";
+
+            strcat(param[0], "','");
+            strcat(order, param[0]);
+            strcat(city, "','");
+            strcat(order, city);
+            strcat(p, "','");
+            strcat(order, p);
+            strcat(q, "','");
+            strcat(order, q);
+            strcat(h, "');");
+            strcat(order, h);
+
+            PGresult *res = PQexec(conn, order);
+
+            if (PQresultStatus(res) != PGRES_COMMAND_OK)
+                do_exit(conn, res);
+
+            PQclear(res);
+        }
+        quantity = atoi(param[6]);
+        has_sold = atoi(param[7]);
+        totalprice = atoi(param[6]) * atoi(param[5]);
+        strcpy(city, param[2]);
+        strcpy(param[0], hold1);
+    }
+}
+
+void insert_market(char param[8][40], PGconn *conn) {
+    if (strcmp(market_id, param[3]) == 0) {
+        quantity += atoi(param[6]);
+        has_sold += atoi(param[7]);
+        totalprice += atoi(param[6]) * atoi(param[5]);
+    } else {
+        if (strcmp(market_id, "") != 0) {
+            char q[20], h[20], p[20];
+            itoa(quantity, q, 10);
+            itoa(has_sold, h, 10);
+            itoa(totalprice / quantity, p, 10);
+
+            char order[300] = "INSERT INTO fp_store_aggregation (time, market_id, price, quantity, has_sold) VALUES('";
+            strcat(param[0], "','");
+            strcat(order, param[0]);
+            strcat(market_id, "','");
+            strcat(order, market_id);
+            strcat(p, "','");
+            strcat(order, p);
+            strcat(q, "','");
+            strcat(order, q);
+            strcat(h, "');");
+            strcat(order, h);
+            puts(order);
+            PGresult *res = PQexec(conn, order);
+
+            if (PQresultStatus(res) != PGRES_COMMAND_OK)
+                do_exit(conn, res);
+
+            PQclear(res);
+        }
+        quantity = atoi(param[6]);
+        has_sold = atoi(param[7]);
+        totalprice = atoi(param[6]) * atoi(param[5]);
+        strcpy(market_id, param[3]);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
