@@ -8,13 +8,14 @@ char files[60][30];
 int time, quantity, has_sold, totalprice;
 char city[40] = "", market_id[20] = "";
 
-void insert_stores_data(char param[8][40], PGconn *conn);
+void insert_stores_data(char param[8][40], PGconn *conn); //function for inserting data into fp_stores_data
 
-void insert_city(char param[8][40], PGconn *conn);
+void insert_city(char param[8][40], PGconn *conn); //function for inserting data into fp_city_aggregation
 
-void insert_market(char param[8][40], PGconn *conn);
+void insert_market(char param[8][40], PGconn *conn); //function for inserting data into fp_store_aggergation
 
 int listFiles() {
+    //function for collecting names of the files
     struct dirent *dp;
     DIR *dir = opendir("C:\\Users\\MHJ\\Desktop\\new");
     if (!dir)
@@ -22,7 +23,7 @@ int listFiles() {
 
     int i = 0;
     while ((dp = readdir(dir)) != NULL) {
-        strcpy(files[i], dp->d_name);
+        strcpy(files[i], dp->d_name); //files are the names of the reports files in the folder
         i++;
     }
     closedir(dir);
@@ -31,7 +32,7 @@ int listFiles() {
 }
 
 void do_exit(PGconn *conn, PGresult *res) {
-
+    //exit function when sth goes wrong while inserting data
     fprintf(stderr, "%s\n", PQerrorMessage(conn));
 
     PQclear(res);
@@ -42,7 +43,8 @@ void do_exit(PGconn *conn, PGresult *res) {
 
 int main() {
     int i, j, k;
-    int n = listFiles();
+    int n = listFiles(); //the output of listfiles is the number of the files in the folder
+    //connenting to the database
     PGconn *conn = PQsetdbLogin("localhost",
                                 "5432", "", "",
                                 "fpdb", "postgres", "");
@@ -50,21 +52,21 @@ int main() {
         fprintf(stderr, "Connection to database failed: %s\n",
                 PQerrorMessage(conn));
     }
-    for (i = 2; i < n; ++i) {
+    for (i = 2; i < n; ++i) { //for every file in the folder
         char s[70] = "C:\\Users\\MHJ\\Desktop\\new\\";
         char param[8][40];
         FILE *ftp = fopen(strcat(s, files[i]), "r");
-        while (!feof(ftp)) {
+        while (!feof(ftp)) { //while for reading all lines
             char buff[200];
             fgets(buff, 200, ftp);
-            char *token = strtok(buff, ",");
+            char *token = strtok(buff, ","); //dividing the lines
             int i = 0;
             while (token != NULL) {
                 strcpy(param[i], token);
                 i++;
                 token = strtok(NULL, ",");
             }
-
+            //parameters are diifferent parts of the line
             insert_stores_data(param, conn);
             insert_city(param, conn);
             insert_market(param, conn);
@@ -97,7 +99,7 @@ void insert_stores_data(char param[8][40], PGconn *conn) {
         strcat(order, param[l]);
     }
 
-    PGresult *res = PQexec(conn, order);
+    PGresult *res = PQexec(conn, order); //inserting into table
 
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
         do_exit(conn, res);
@@ -136,7 +138,7 @@ void insert_city(char param[8][40], PGconn *conn) {
             strcat(h, "');");
             strcat(order, h);
 
-            PGresult *res = PQexec(conn, order);
+            PGresult *res = PQexec(conn, order);//inserting into table
 
             if (PQresultStatus(res) != PGRES_COMMAND_OK)
                 do_exit(conn, res);
@@ -175,7 +177,7 @@ void insert_market(char param[8][40], PGconn *conn) {
             strcat(h, "');");
             strcat(order, h);
             puts(order);
-            PGresult *res = PQexec(conn, order);
+            PGresult *res = PQexec(conn, order);//inserting into table
 
             if (PQresultStatus(res) != PGRES_COMMAND_OK)
                 do_exit(conn, res);
